@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Letter Rain Catcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #3498db;
+            --rain-color: #aaddff;
+            --panel-bg: rgba(255, 255, 255, 0.98);
+            --water-blue: #2980b9;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Balsamiq Sans', cursive;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #87ceeb;
+            overflow: hidden;
+        }
+
+        #bg-layer {
+           position: absolute;
+   		 top: 0;
+   		 left: 0;
+   		 width: 100%;
+   		 height: 100%;
+    		background-size: cover;
+    		background-position: center;
+   		 z-index: 0;
+    		background-color: #87ceeb;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .screen.active { display: flex; }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 8px solid var(--primary-blue);
+            border-radius: 30px;
+            padding: 30px;
+            text-align: center;
+            max-width: 95%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+
+        .settings-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .setting-item {
+            background: #f1f2f6;
+            padding: 12px;
+            border-radius: 15px;
+        }
+
+        .setting-item label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], input[type="range"], select { 
+            width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc;
+        }
+
+        .btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 5px;
+            box-shadow: 0 4px 0 #2471a3;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #2471a3; }
+        .btn-green { background: #27ae60; box-shadow: 0 4px 0 #1e8449; }
+        .btn-orange { background: #e67e22; box-shadow: 0 4px 0 #d35400; }
+        .btn-grey { background: #7f8c8d; box-shadow: 0 4px 0 #616a6b; font-size: 0.9rem; }
+
+        #game-layout { display: flex; width: 100%; height: 100%; z-index: 5; position: relative; }
+        .lane { position: relative; flex: 1; height: 100%; overflow: hidden; border-right: 2px dashed rgba(255,255,255,0.3); }
+        .lane:last-child { border-right: none; }
+
+        .jar-container {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 130px;
+            z-index: 50;
+            touch-action: none;
+        }
+        .jar-body {
+            width: 100%; height: 100%;
+            border: 5px solid #fff;
+            border-radius: 10px 10px 30px 30px;
+            background: rgba(255,255,255,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        .water-fill {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 0%;
+            background: var(--water-blue);
+            transition: height 0.3s;
+        }
+        .sticker {
+            position: absolute;
+            top: -20px; left: 50%; transform: translateX(-50%);
+            background: #fff; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; border: 3px solid var(--primary-blue); z-index: 60;
+            text-transform: uppercase;
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 45px; height: 60px;
+            background: var(--rain-color);
+            border-radius: 0 50% 50% 50%;
+            transform: rotate(45deg);
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid rgba(255,255,255,0.6);
+            pointer-events: none;
+        }
+        .raindrop span { transform: rotate(-45deg); font-weight: bold; color: #1a5276; font-size: 1.4rem; }
+
+        #hud {
+            position: absolute;
+            top: 10px; width: 100%;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; gap: 10px; padding: 0 20px;
+            pointer-events: none;
+        }
+        .hud-group { 
+            display: flex; gap: 5px; background: rgba(255,255,255,0.3); padding: 5px; border-radius: 40px; backdrop-filter: blur(5px);
+            pointer-events: auto;
+        }
+        .timer-box { 
+            background: white; padding: 5px 20px; border-radius: 30px; border: 3px solid var(--primary-blue); 
+            font-weight: bold; font-size: 1.5rem; min-width: 80px; text-align: center;
+            pointer-events: auto;
+        }
+
+        .shaking { animation: shake 0.1s 4; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-55%) rotate(-5deg); }
+            75% { transform: translateX(-45%) rotate(5deg); }
+        }
+
+        #victory-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+        }
+        #victory-overlay.active { display: flex; }
+        .victory-card { background: white; padding: 40px; border-radius: 30px; text-align: center; border: 8px solid #f1c40f; }
+
+        .hidden-input { display: none; }
+        .vol-slider { vertical-align: middle; width: 80px !important; margin: 0 5px; }
+
+        .music-reminder {
+            background: #fff3cd;
+            color: #856404;
+            padding: 8px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="bg-layer"></div>
+
+    <!-- Setup/Control Panel -->
+    <div id="screen-settings" class="screen active">
+        <div class="panel">
+            <h1 style="margin: 0; color: var(--primary-blue);">Game Control Panel</h1>
+            
+            <div class="settings-form">
+                <div class="setting-item" style="grid-column: span 2;">
+                    <label>Letter Sequence (comma separated)</label>
+                    <input type="text" id="set-letters" value="m, a, t">
+                </div>
+                <div class="setting-item">
+                    <label>Players</label>
+                    <select id="set-players">
+                        <option value="1">1 Player</option>
+                        <option value="2" selected>2 Players</option>
+                        <option value="3">3 Players</option>
+                        <option value="4">4 Players</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Jars per Player</label>
+                    <input type="number" id="set-jars-count" value="3">
+                </div>
+                <div class="setting-item">
+                    <label>Drops per Jar</label>
+                    <input type="number" id="set-goal" value="5">
+                </div>
+                <div class="setting-item">
+                    <label>Background Image</label>
+                    <input type="file" id="upload-bg" accept="image/*">
+                </div>
+                <div class="setting-item">
+                    <label>Background Music</label>
+                    <input type="file" id="upload-music" accept="audio/*">
+                    <div id="music-reminder" class="music-reminder">
+                        ⚠️ Session loaded. Please re-select your music file to play audio.
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>Rain Intensity</label>
+                    <input type="range" id="set-intensity" min="1" max="10" value="6">
+                </div>
+                <div class="setting-item">
+                    <label>Time (Seconds)</label>
+                    <input type="number" id="set-time" value="60">
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #ddd; padding-top: 15px;">
+                <button class="btn btn-green" onclick="saveAndStart()">START NEW GAME</button>
+                <button class="btn btn-grey" onclick="downloadJSON()">💾 SAVE SESSION</button>
+                <button class="btn btn-grey" onclick="document.getElementById('load-json').click()">📂 LOAD SESSION</button>
+                <input type="file" id="load-json" class="hidden-input" accept=".json" onchange="loadJSON(this)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Screen -->
+    <div id="screen-game" class="screen">
+        <div id="hud">
+            <div class="hud-group">
+                <button class="btn btn-orange" id="pause-btn" onclick="togglePause()" style="padding: 5px 15px;">PAUSE</button>
+                <button class="btn btn-green" onclick="saveAndStart()" style="padding: 5px 15px;">RESTART</button>
+            </div>
+            
+            <div class="timer-box" id="timer-display">60</div>
+            
+            <div class="hud-group">
+                <span style="font-size: 0.8rem; font-weight: bold; color: white; margin-left: 10px;">VOL:</span>
+                <input type="range" class="vol-slider" id="vol-control" min="0" max="1" step="0.1" value="0.5" oninput="updateVolume(this.value)">
+                <button class="btn btn-grey" onclick="showScreen('screen-settings')" style="padding: 5px 15px;">⚙️ SETTINGS</button>
+            </div>
+        </div>
+        <div id="game-layout"></div>
+    </div>
+
+    <!-- Victory Overlay -->
+    <div id="victory-overlay">
+        <div class="victory-card">
+            <h1 id="vic-title" style="font-size: 3rem; color: #f39c12; margin: 0;">WINNER!</h1>
+            <p id="vic-msg" style="font-size: 1.2rem; margin-bottom: 20px;"></p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-green" onclick="saveAndStart()">PLAY AGAIN</button>
+                <button class="btn btn-orange" onclick="showScreen('screen-settings')">BACK TO MENU</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<audio id="audio-bg" loop></audio>
+
+<script>
+    let gameActive = false;
+    let isPaused = false;
+    let timerInterval;
+    let timeRemaining = 60;
+    let raindrops = [];
+    let players = [];
+    let audioCtx;
+    
+    // Map to track active touch identifiers
+    const activeTouches = new Map();
+
+    let CONFIG = {
+        letters: "m, a, t",
+        players: 2,
+        jars: 3,
+        goal: 5,
+        time: 60,
+        intensity: 6,
+        bgImageData: null, // To store base64 background
+        hasMusic: false    // Flag to remind user to re-upload music
+    };
+
+    // --- Asset Handling ---
+    document.getElementById('upload-bg').addEventListener('change', function(e) {
+        if(this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                CONFIG.bgImageData = event.target.result;
+                document.getElementById('bg-layer').style.backgroundImage = `url(${CONFIG.bgImageData})`;
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    document.getElementById('upload-music').addEventListener('change', function(e) {
+        if(this.files && this.files[0]) {
+            const url = URL.createObjectURL(this.files[0]);
+            const audio = document.getElementById('audio-bg');
+	    audio.volume = 0.5;
+            audio.src = url;
+            CONFIG.hasMusic = true;
+            document.getElementById('music-reminder').style.display = 'none';
+            audio.play().catch(() => {});
+        }
+    });
+
+    function updateVolume(val) {
+        document.getElementById('audio-bg').volume = val;
+    }
+
+    function downloadJSON() {
+        updateConfigFromUI();
+        // Export CONFIG as JSON. Note: Music files are NOT exported because they are too large for standard browser JSON downloads.
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(CONFIG));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "letter_catcher_session.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function loadJSON(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loaded = JSON.parse(e.target.result);
+                    Object.assign(CONFIG, loaded);
+                    
+                    // Update UI fields
+                    document.getElementById('set-letters').value = CONFIG.letters;
+                    document.getElementById('set-players').value = CONFIG.players;
+                    document.getElementById('set-jars-count').value = CONFIG.jars;
+                    document.getElementById('set-goal').value = CONFIG.goal;
+                    document.getElementById('set-time').value = CONFIG.time;
+                    document.getElementById('set-intensity').value = CONFIG.intensity;
+
+                    // Apply background if present
+                    if (CONFIG.bgImageData) {
+                        document.getElementById('bg-layer').style.backgroundImage = `url(${CONFIG.bgImageData})`;
+                    }
+
+                    // Handle Music Reminder
+                    if (CONFIG.hasMusic) {
+                        document.getElementById('music-reminder').style.display = 'block';
+                    }
+                } catch(err) { 
+                    console.error(err);
+                    alert("Invalid JSON file"); 
+                }
+            };
+            reader.readAsText(input.files[0]);
+        }
+    }
+
+    function updateConfigFromUI() {
+        CONFIG.letters = document.getElementById('set-letters').value;
+        CONFIG.players = parseInt(document.getElementById('set-players').value);
+        CONFIG.jars = parseInt(document.getElementById('set-jars-count').value);
+        CONFIG.goal = parseInt(document.getElementById('set-goal').value);
+        CONFIG.time = parseInt(document.getElementById('set-time').value);
+        CONFIG.intensity = parseInt(document.getElementById('set-intensity').value);
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('victory-overlay').classList.remove('active');
+        
+        if (id === 'screen-settings') {
+            gameActive = false;
+            clearInterval(timerInterval);
+            document.getElementById('audio-bg').pause();
+        }
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('pause-btn');
+        btn.innerText = isPaused ? "RESUME" : "PAUSE";
+        const audio = document.getElementById('audio-bg');
+        if (isPaused) audio.pause();
+        else if (audio.src) audio.play();
+    }
+
+    function saveAndStart() {
+        updateConfigFromUI();
+        startGame();
+    }
+
+    function startGame() {
+        showScreen('screen-game');
+        gameActive = true;
+        isPaused = false;
+        document.getElementById('pause-btn').innerText = "PAUSE";
+        timeRemaining = CONFIG.time;
+        
+        raindrops.forEach(r => r.el.remove());
+        raindrops = [];
+        players = [];
+        activeTouches.clear();
+
+        const layout = document.getElementById('game-layout');
+        layout.innerHTML = '';
+
+        const letterList = CONFIG.letters.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        if (letterList.length === 0) letterList.push('a');
+
+        for (let i = 0; i < CONFIG.players; i++) {
+            const lane = document.createElement('div');
+            lane.className = 'lane';
+            lane.id = `lane-${i}`;
+            
+            const pLetters = [];
+            for (let j = 0; j < CONFIG.jars; j++) {
+                pLetters.push(letterList[j % letterList.length]);
+            }
+
+            lane.innerHTML = `
+                <div class="jar-container" id="jar-${i}">
+                    <div class="sticker">${pLetters[0].toUpperCase()}</div>
+                    <div class="jar-body">
+                        <div class="water-fill" id="fill-${i}"></div>
+                    </div>
+                </div>
+            `;
+
+            layout.appendChild(lane);
+
+            players.push({
+                idx: i,
+                letters: pLetters,
+                goal: CONFIG.goal,
+                current: 0,
+                jarsDone: 0,
+                finished: false,
+                el: lane.querySelector('.jar-container'),
+                fill: lane.querySelector('.water-fill'),
+                sticker: lane.querySelector('.sticker'),
+                laneEl: lane
+            });
+        }
+
+        setupMultiTouch(layout);
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(tick, 1000);
+        document.getElementById('timer-display').innerText = timeRemaining;
+        
+        const audio = document.getElementById('audio-bg');
+        if (audio.src) audio.play().catch(() => {});
+
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function tick() {
+        if (!gameActive || isPaused) return;
+        timeRemaining--;
+        document.getElementById('timer-display').innerText = timeRemaining;
+        if (timeRemaining <= 0) resolveWinner();
+        
+        for(let i=0; i < Math.ceil(CONFIG.intensity/2); i++) {
+            if (Math.random() > 0.4) spawnDrop();
+        }
+    }
+
+    function spawnDrop() {
+	if (raindrops.length > 50) return;
+        const pIdx = Math.floor(Math.random() * players.length);
+        const player = players[pIdx];
+        if (player.finished) return;
+
+        const lane = document.getElementById(`lane-${pIdx}`);
+        const dropWidth = 45;
+        const dropHeight = 70;
+        
+        let attempts = 0;
+        let leftPercent;
+        let isOverlapping = true;
+
+        while (isOverlapping && attempts < 5) {
+            attempts++;
+            leftPercent = Math.random() * 70 + 15;
+            const leftPx = (leftPercent / 100) * lane.clientWidth;
+            
+            isOverlapping = raindrops.some(r => {
+                if (r.pIdx !== pIdx) return false;
+                if (r.y > 120) return false;
+                const rLeftPx = (parseFloat(r.el.style.left) / 100) * lane.clientWidth;
+                return Math.abs(leftPx - rLeftPx) < dropWidth + 10 && Math.abs(-70 - r.y) < dropHeight;
+            });
+        }
+
+        if (isOverlapping) return;
+
+        const drop = document.createElement('div');
+        drop.className = 'raindrop';
+        
+        const target = player.letters[player.jarsDone].toLowerCase();
+        const isTarget = Math.random() > 0.6;
+        const letter = isTarget ? target : String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        
+        drop.innerHTML = `<span>${letter}</span>`;
+        drop.style.left = leftPercent + '%';
+        drop.style.top = '-70px';
+        
+        lane.appendChild(drop);
+        raindrops.push({ el: drop, pIdx: pIdx, y: -70, letter: letter });
+    }
+
+    function gameLoop() {
+        if (!gameActive) return;
+        if (!isPaused) {
+            for (let i = raindrops.length - 1; i >= 0; i--) {
+                const r = raindrops[i];
+                r.y += 5;
+                r.el.style.top = r.y + 'px';
+
+                const p = players[r.pIdx];
+                const rRect = r.el.getBoundingClientRect();
+                const jRect = p.el.getBoundingClientRect();
+
+                if (rRect.bottom > jRect.top + 20 && rRect.left < jRect.right && rRect.right > jRect.left && rRect.top < jRect.bottom) {
+                    if (r.letter === p.letters[p.jarsDone].toLowerCase()) {
+                        p.current++;
+                        playSFX(600, 1200);
+                        if (p.current >= p.goal) {
+                            p.jarsDone++;
+                            if (p.jarsDone >= p.letters.length) {
+                                p.finished = true;
+                                p.fill.style.background = "#2ecc71";
+                                checkWin();
+                            } else {
+                                p.current = 0;
+                                p.sticker.innerText = p.letters[p.jarsDone].toUpperCase();
+                            }
+                        }
+                    } else {
+                        p.current = 0;
+                        p.el.classList.add('shaking');
+                        setTimeout(() => p.el.classList.remove('shaking'), 500);
+                        playSFX(200, 100);
+                    }
+                    p.fill.style.height = (p.current / p.goal * 100) + '%';
+                    r.el.remove();
+                    raindrops.splice(i, 1);
+                } else if (r.y > window.innerHeight) {
+                    r.el.remove();
+                    raindrops.splice(i, 1);
+                }
+            }
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    function checkWin() {
+        if (players.every(p => p.finished)) resolveWinner();
+    }
+
+    function resolveWinner() {
+        if (!gameActive) return;
+        gameActive = false;
+        clearInterval(timerInterval);
+
+        let winner = -1;
+        let maxScore = -1;
+        players.forEach((p, i) => {
+            const score = p.jarsDone + (p.current/p.goal);
+            if (score > maxScore) { maxScore = score; winner = i; }
+        });
+
+        document.getElementById('vic-title').innerText = (players.length > 1) ? `PLAYER ${winner+1} WINS!` : "MISSION COMPLETE!";
+        document.getElementById('vic-msg').innerText = `Successfully caught all letters!`;
+        document.getElementById('victory-overlay').classList.add('active');
+    }
+
+    function setupMultiTouch(layout) {
+        const handleInteraction = (id, clientX) => {
+            if (!gameActive || isPaused) return;
+            
+            players.forEach(p => {
+                const rect = p.laneEl.getBoundingClientRect();
+                if (clientX >= rect.left && clientX <= rect.right) {
+                    let x = clientX - rect.left;
+                    x = Math.max(50, Math.min(rect.width - 50, x));
+                    p.el.style.left = x + 'px';
+                    activeTouches.set(id, p.idx);
+                }
+            });
+        };
+
+        layout.addEventListener('touchstart', (e) => {
+            if (isPaused) return;
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                handleInteraction(touch.identifier, touch.clientX);
+            }
+        }, { passive: false });
+
+        layout.addEventListener('touchmove', (e) => {
+            if (isPaused) return;
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                handleInteraction(touch.identifier, touch.clientX);
+            }
+        }, { passive: false });
+
+        layout.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                activeTouches.delete(e.changedTouches[i].identifier);
+            }
+        });
+
+        layout.addEventListener('mousedown', (e) => {
+            if (isPaused) return;
+            handleInteraction('mouse', e.clientX);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) handleInteraction('mouse', e.clientX);
+        });
+    }
+
+    function playSFX(start, end) {
+        if (!audioCtx) return;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.setValueAtTime(start, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(end, audioCtx.currentTime + 0.2);
+        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+        o.start(); o.stop(audioCtx.currentTime + 0.2);
+    }
+</script>
+</body>
+</html>
