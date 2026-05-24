@@ -231,24 +231,24 @@
             <div class="settings-form">
                 <div class="setting-item" style="grid-column: span 2;">
                     <label>Letter Sequence (comma separated)</label>
-                    <input type="text" id="set-letters" value="m, a, t">
+                    <input type="text" id="set-letters" value="j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z">
                 </div>
                 <div class="setting-item">
                     <label>Players</label>
                     <select id="set-players">
-                        <option value="1">1 Player</option>
-                        <option value="2" selected>2 Players</option>
+                        <option value="1" selected>1 Player</option>
+                        <option value="2">2 Players</option>
                         <option value="3">3 Players</option>
                         <option value="4">4 Players</option>
                     </select>
                 </div>
                 <div class="setting-item">
                     <label>Jars per Player</label>
-                    <input type="number" id="set-jars-count" value="3">
+                    <input type="number" id="set-jars-count" value="5">
                 </div>
                 <div class="setting-item">
                     <label>Drops per Jar</label>
-                    <input type="number" id="set-goal" value="5">
+                    <input type="number" id="set-goal" value="3">
                 </div>
                 <div class="setting-item">
                     <label>Background Image</label>
@@ -263,11 +263,11 @@
                 </div>
                 <div class="setting-item">
                     <label>Rain Intensity</label>
-                    <input type="range" id="set-intensity" min="1" max="10" value="6">
+                    <input type="range" id="set-intensity" min="1" max="10" value="5">
                 </div>
                 <div class="setting-item">
                     <label>Time (Seconds)</label>
-                    <input type="number" id="set-time" value="60">
+                    <input type="number" id="set-time" value="120">
                 </div>
             </div>
 
@@ -327,12 +327,12 @@
     const activeTouches = new Map();
 
     let CONFIG = {
-        letters: "m, a, t",
-        players: 2,
-        jars: 3,
-        goal: 5,
-        time: 60,
-        intensity: 6,
+        letters: "j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z",
+        players: 1,
+        jars: 5,
+        goal: 3,
+        time: 120,
+        intensity: 5,
         bgImageData: null, // To store base64 background
         hasMusic: false    // Flag to remind user to re-upload music
     };
@@ -353,7 +353,7 @@
         if(this.files && this.files[0]) {
             const url = URL.createObjectURL(this.files[0]);
             const audio = document.getElementById('audio-bg');
-	    audio.volume = 0.5;
+	    audio.volume = 0.3;
             audio.src = url;
             CONFIG.hasMusic = true;
             document.getElementById('music-reminder').style.display = 'none';
